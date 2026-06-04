@@ -23,7 +23,7 @@ const PHOTO_RADIUS = 15
 const PHOTO_X      = TEXT_X - 40 - PHOTO_SIZE // 198  (40px gap photo→text)
 const YEAR_W       = 75
 const YEAR_X       = PHOTO_X - 20 - YEAR_W    // 103  (20px gap, 75px col width)
-const YEAR_SPACING = 94                        // matches 94px line-height @ 92px font
+const YEAR_SPACING = 88                        // tight spacing @ 92px font
 
 // ─── Typography (exact Figma values) ────────────────────────────────
 const YEAR_FONT  = 92
@@ -42,7 +42,9 @@ const BRAND_RED  = '#B20419'
 const FONT_DEFS = [
   { family: 'UNicod Sans Bold',      file: 'UNicod%20Sans%20Condensed%20Bold.ttf' },
   { family: 'UNicod Sans',           file: 'UNicod%20Sans.ttf' },
-  { family: 'UNicod Sans Condensed', file: 'UNicod%20Sans%20Condensed.ttf' },
+  { family: 'UNicod Sans Medium',    file: 'UNicod%20Sans%20Medium.ttf' },
+  { family: 'UNicod Sans Condensed',      file: 'UNicod%20Sans%20Condensed.ttf' },
+  { family: 'UNicod Sans Medium Italic',  file: 'UNicod%20Sans%20Medium%20Italic.ttf' },
 ]
 
 let _fontsPromise = null
@@ -159,7 +161,7 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
   const ch         = bgImage?.naturalHeight ?? 1695
   // Anchor from bottom: year column (tallest element, 428px) ends 74px from bottom
   const yearTotalH = 3 * YEAR_SPACING + YEAR_FONT  // 374px
-  const midY       = ch - 74 - yearTotalH / 2      // year bottom = ch - 74
+  const midY       = ch - 64 - yearTotalH / 2      // year bottom = ch - 64
 
   // ── Derived vertical layout (runs only after fonts are ready) ──────
   const nameLines   = ready ? countLines(name, `normal ${NAME_FONT}px "UNicod Sans Bold"`, TEXT_W) : 1
@@ -168,7 +170,7 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
 
   const textY       = Math.round(midY - textBlockH / 2)
   const photoY      = Math.round(midY - PHOTO_SIZE / 2)
-  const yearStartY  = Math.round(midY - yearTotalH / 2)
+  const yearStartY  = Math.round(midY - yearTotalH / 2) + 15
 
   const photoClipFn = useCallback(
     ctx => roundedRectClip(ctx, PHOTO_SIZE, PHOTO_SIZE, PHOTO_RADIUS),
@@ -219,9 +221,9 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
             y={yearStartY + i * YEAR_SPACING}
             text={digit}
             fontSize={YEAR_FONT}
-            fontFamily="UNicod Sans"
+            fontFamily="UNicod Sans Bold"
             fontStyle="normal"
-            fill="#000000"
+            fill="#AAAAAA"
             width={YEAR_W}
             align="center"
           />
@@ -267,7 +269,7 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE}
           text={role}
           fontSize={ROLE_FONT}
-          fontFamily="UNicod Sans"
+          fontFamily="UNicod Sans Medium"
           fontStyle="normal"
           fill={BRAND_RED}
           width={TEXT_W}
@@ -281,8 +283,8 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE + ROLE_LH + GAP_ROLE_FILM}
           text={filmTitle}
           fontSize={FILM_FONT}
-          fontFamily="UNicod Sans Condensed"
-          fontStyle="italic"
+          fontFamily="UNicod Sans Medium Italic"
+          fontStyle="normal"
           fill={BRAND_RED}
           width={TEXT_W}
           align="left"
