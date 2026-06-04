@@ -25,16 +25,21 @@ const YEAR_W       = 75
 const YEAR_X       = PHOTO_X - 20 - YEAR_W    // 103  (20px gap, 75px col width)
 const YEAR_SPACING = 88                        // tight spacing @ 92px font
 
-// ─── Typography (exact Figma values) ────────────────────────────────
+// ─── Typography ──────────────────────────────────────────────────────
 const YEAR_FONT  = 92
-const NAME_FONT  = 77
-const NAME_LH    = 90   // line-height px  → ratio = NAME_LH / NAME_FONT
 const ROLE_FONT  = 60
 const ROLE_LH    = 72
-const FILM_FONT  = 60
-const FILM_LH    = 72
-const GAP_NAME_ROLE = 40  // px between name and role
-const GAP_ROLE_FILM = 10  // px between role and film title (tight)
+const GAP_ROLE_FILM = 10  // role → film title gap (tight)
+
+// Char-count based font sizes (no measurement needed)
+function getNameFontSize(name) {
+  if (name.length <= 15) return 77
+  if (name.length <= 20) return 60
+  return 48
+}
+function getFilmFontSize(filmTitle) {
+  return filmTitle.length <= 20 ? 60 : 48
+}
 
 const BRAND_RED  = '#B20419'
 
@@ -117,17 +122,27 @@ function roundedRectClip(ctx, w, h, r) {
 // ─── Component ───────────────────────────────────────────────────────
 const BadgeCanvas = forwardRef(function BadgeCanvas(
   {
-    name      = 'Guest Name',
-    role      = 'Director',
-    filmTitle = 'Film Title',
-    photo     = null,
+    name           = 'Guest Name',
+    role           = 'Director',
+    filmTitle      = 'Film Title',
+    photo          = null,
+    onExportReady  = null,   // called once when stage + photo are both ready
   },
   ref
 ) {
   const stageRef = useRef()
-  const [ready, setReady]             = useState(false)
-  const [bgImage, setBgImage]         = useState(null)
-  const [photoImage, setPhotoImage]   = useState(null)
+  const [ready, setReady]               = useState(false)
+  const [bgImage, setBgImage]           = useState(null)
+  const [photoImage, setPhotoImage]     = useState(null)
+  const [loadedPhotoUrl, setLoadedPhotoUrl] = useState(null)
+
+  // Stable ref so the effect below never stale-closes over onExportReady
+  const onExportReadyRef = useRef(onExportReady)
+  useEffect(() => { onExportReadyRef.current = onExportReady }, [onExportReady])
+
+  // Guard: fire onExportReady exactly once per photo value
+  const exportFiredRef = useRef(false)
+  useEffect(() => { exportFiredRef.current = false }, [photo])
 
   // Await all fonts + background before showing Stage
   useEffect(() => {
@@ -146,15 +161,47 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
     return () => { alive = false }
   }, [])
 
-  // Reload photo when prop changes
+  // Reload photo when prop changes.
+  // We also track loadedPhotoUrl so the export-ready check can verify
+  // that the image currently painted matches the current photo prop —
+  // without this, the check fires with a stale image from the previous guest.
   useEffect(() => {
-    if (!photo) { setPhotoImage(null); return }
+    if (!photo) {
+      setPhotoImage(null)
+      setLoadedPhotoUrl(null)
+      return
+    }
     let alive = true
+    setPhotoImage(null)       // clear old image immediately
+    setLoadedPhotoUrl(null)   // mark as "not yet loaded"
     loadImage(photo)
-      .then(img => { if (alive) setPhotoImage(img) })
-      .catch(() => {})
+      .then(img => {
+        if (alive) {
+          setPhotoImage(img)
+          setLoadedPhotoUrl(photo)  // confirm which URL is now painted
+        }
+      })
+      .catch(() => {
+        if (alive) setLoadedPhotoUrl(photo)  // error → use placeholder, still proceed
+      })
     return () => { alive = false }
   }, [photo])
+
+  // Fire onExportReady when stage is ready AND the current photo URL has been
+  // fully resolved (loaded or errored).  Using loadedPhotoUrl === photo instead
+  // of photoImage !== null prevents a false positive when photo prop changes but
+  // photoImage still holds the previous guest's image.
+  useEffect(() => {
+    if (!ready) return
+    if (exportFiredRef.current) return
+    const photoReady = !photo || loadedPhotoUrl === photo
+    if (photoReady) {
+      exportFiredRef.current = true
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        onExportReadyRef.current?.()
+      }))
+    }
+  }, [ready, loadedPhotoUrl, photo])
 
   // ── Canvas dimensions from background image ────────────────────────
   const cw         = bgImage?.naturalWidth  ?? 1227
@@ -163,14 +210,30 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
   const yearTotalH = 3 * YEAR_SPACING + YEAR_FONT  // 374px
   const midY       = ch - 64 - yearTotalH / 2      // year bottom = ch - 64
 
-  // ── Derived vertical layout (runs only after fonts are ready) ──────
-  const nameLines   = ready ? countLines(name, `normal ${NAME_FONT}px "UNicod Sans Bold"`, TEXT_W) : 1
-  const nameBlockH  = nameLines * NAME_LH
-  const textBlockH  = nameBlockH + GAP_NAME_ROLE + ROLE_LH + GAP_ROLE_FILM + FILM_LH
+  // ── Derived vertical layout ────────────────────────────────────────
+  // Name
+  const nameFontSize = ready ? getNameFontSize(name) : 77
+  const nameLH       = Math.round(nameFontSize * 1.17)
+  const nameLines    = ready ? countLines(name, `normal ${nameFontSize}px "UNicod Sans Bold"`, TEXT_W) : 1
+  const nameBlockH   = nameLines * nameLH
 
-  const textY       = Math.round(midY - textBlockH / 2)
-  const photoY      = Math.round(midY - PHOTO_SIZE / 2)
-  const yearStartY  = Math.round(midY - yearTotalH / 2) + 15
+  // Film title
+  const filmFontSize = ready ? getFilmFontSize(filmTitle) : 60
+  const filmLH       = Math.round(filmFontSize * 1.17)
+  const filmLines    = ready
+    ? countLines(filmTitle, `normal ${filmFontSize}px "UNicod Sans Medium Italic"`, TEXT_W)
+    : 1
+  const filmBlockH   = filmLines * filmLH
+
+  // Photo: vertically centred at midY
+  const photoY = Math.round(midY - PHOTO_SIZE / 2)
+
+  // Text: Name top = photo top | Film Title bottom = photo bottom
+  const nameY      = photoY
+  const filmTitleY = photoY + PHOTO_SIZE - filmBlockH
+  const roleY      = filmTitleY - GAP_ROLE_FILM - ROLE_LH  // Role sits above film title
+
+  const yearStartY = Math.round(midY - yearTotalH / 2) + 15
 
   const photoClipFn = useCallback(
     ctx => roundedRectClip(ctx, PHOTO_SIZE, PHOTO_SIZE, PHOTO_RADIUS),
@@ -243,30 +306,28 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           <Rect
             x={PHOTO_X} y={photoY}
             width={PHOTO_SIZE} height={PHOTO_SIZE}
-            fill={null}
-            stroke="#aaaaaa"
-            strokeWidth={2}
+            fill="#D0D0D0"
             cornerRadius={PHOTO_RADIUS}
           />
         )}
 
-        {/* Name — 77px, UNicod Sans Bold, #000000, wraps up to 2 lines */}
+        {/* Name — top aligns with photo top, adaptive size by char count */}
         <Text
-          x={TEXT_X} y={textY}
+          x={TEXT_X} y={nameY}
           text={name}
-          fontSize={NAME_FONT}
+          fontSize={nameFontSize}
           fontFamily="UNicod Sans Bold"
           fontStyle="normal"
           fill="#000000"
           width={TEXT_W}
           align="left"
           wrap="word"
-          lineHeight={NAME_LH / NAME_FONT}
+          lineHeight={nameLH / nameFontSize}
         />
 
-        {/* Role — 60px, UNicod Sans, #B20419 */}
+        {/* Role — sits just above film title (10px gap) */}
         <Text
-          x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE}
+          x={TEXT_X} y={roleY}
           text={role}
           fontSize={ROLE_FONT}
           fontFamily="UNicod Sans Medium"
@@ -278,18 +339,18 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           lineHeight={ROLE_LH / ROLE_FONT}
         />
 
-        {/* Film title — 60px, UNicod Sans Condensed, italic, #B20419 */}
+        {/* Film title — bottom aligns with photo bottom */}
         <Text
-          x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE + ROLE_LH + GAP_ROLE_FILM}
+          x={TEXT_X} y={filmTitleY}
           text={filmTitle}
-          fontSize={FILM_FONT}
+          fontSize={filmFontSize}
           fontFamily="UNicod Sans Medium Italic"
           fontStyle="normal"
           fill={BRAND_RED}
           width={TEXT_W}
           align="left"
           wrap="word"
-          lineHeight={FILM_LH / FILM_FONT}
+          lineHeight={filmLH / filmFontSize}
         />
 
       </Layer>
