@@ -9,23 +9,21 @@ import React, {
 import { Stage, Layer, Image as KonvaImage, Text, Rect, Group } from 'react-konva'
 
 // ─── Canvas ──────────────────────────────────────────────────────────
-const W = 1227
-const H = 1695
-const BG_H = 848
-const LOWER_Y = BG_H
-const LOWER_H = H - BG_H   // 847
+// Stage dimensions match bgImage.naturalWidth/Height exactly (no scaling).
+// Dynamic content lives in the bottom CONTENT_H pixels, transparent over the bg.
 const PIXEL_RATIO = 3
+const CONTENT_H   = 469   // px — fixed height of the dynamic content band
 
-// ─── Horizontal layout (derived right-to-left from Figma values) ─────
+// ─── Horizontal layout (Figma values for 1227px canvas width) ────────
 // Right margin: 118 | Text width: 516 | Photo: 355 | Gap year→photo: 77
-const TEXT_X    = W - 118 - 516   // 593
-const TEXT_W    = 516
-const PHOTO_X   = TEXT_X - 40 - 355  // 198  (40px gap photo→text)
+const TEXT_W       = 516
+const TEXT_X       = 1227 - 118 - TEXT_W      // 593
 const PHOTO_SIZE   = 355
 const PHOTO_RADIUS = 15
-const YEAR_X    = PHOTO_X - 77 - 75  // 46   (77px gap, 75px col width)
-const YEAR_W    = 75
-const YEAR_SPACING = 112             // px between char top positions @ 92px font
+const PHOTO_X      = TEXT_X - 40 - PHOTO_SIZE // 198  (40px gap photo→text)
+const YEAR_W       = 75
+const YEAR_X       = PHOTO_X - 20 - YEAR_W    // 103  (20px gap, 75px col width)
+const YEAR_SPACING = 94                        // matches 94px line-height @ 92px font
 
 // ─── Typography (exact Figma values) ────────────────────────────────
 const YEAR_FONT  = 92
@@ -35,7 +33,8 @@ const ROLE_FONT  = 60
 const ROLE_LH    = 72
 const FILM_FONT  = 60
 const FILM_LH    = 72
-const TEXT_GAP   = 20   // px between name/role/film blocks
+const GAP_NAME_ROLE = 40  // px between name and role
+const GAP_ROLE_FILM = 10  // px between role and film title (tight)
 
 const BRAND_RED  = '#B20419'
 
@@ -155,17 +154,20 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
     return () => { alive = false }
   }, [photo])
 
+  // ── Canvas dimensions from background image ────────────────────────
+  const cw         = bgImage?.naturalWidth  ?? 1227
+  const ch         = bgImage?.naturalHeight ?? 1695
+  // Anchor from bottom: year column (tallest element, 428px) ends 74px from bottom
+  const yearTotalH = 3 * YEAR_SPACING + YEAR_FONT  // 374px
+  const midY       = ch - 74 - yearTotalH / 2      // year bottom = ch - 74
+
   // ── Derived vertical layout (runs only after fonts are ready) ──────
   const nameLines   = ready ? countLines(name, `normal ${NAME_FONT}px "UNicod Sans Bold"`, TEXT_W) : 1
   const nameBlockH  = nameLines * NAME_LH
-  const textBlockH  = nameBlockH + TEXT_GAP + ROLE_LH + TEXT_GAP + FILM_LH
-
-  // All three columns centred independently around the lower-area midline
-  const midY        = LOWER_Y + LOWER_H / 2
+  const textBlockH  = nameBlockH + GAP_NAME_ROLE + ROLE_LH + GAP_ROLE_FILM + FILM_LH
 
   const textY       = Math.round(midY - textBlockH / 2)
   const photoY      = Math.round(midY - PHOTO_SIZE / 2)
-  const yearTotalH  = 3 * YEAR_SPACING + YEAR_FONT
   const yearStartY  = Math.round(midY - yearTotalH / 2)
 
   const photoClipFn = useCallback(
@@ -179,40 +181,43 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
       stageRef.current?.toDataURL({ pixelRatio: PIXEL_RATIO, mimeType: 'image/png' }),
   }), [])
 
-  // ── Loading state — Stage is not mounted until fonts are ready ────
+  // ── Loading state — Stage is not mounted until fonts + bg are ready ─
   if (!ready) {
     return (
       <div style={{
-        width: W, height: H,
+        width: 1227, height: 1695,
         background: '#f5f5f5',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 28, color: '#999',
       }}>
-        Loading fonts…
+        Loading…
       </div>
     )
   }
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <Stage ref={stageRef} width={W} height={H}>
+    // Stage size = background image's natural pixel dimensions
+    <Stage ref={stageRef} width={cw} height={ch}>
       <Layer>
 
-        {/* Upper background */}
+        {/* Background — rendered at natural size, no scaling */}
         {bgImage && (
-          <KonvaImage image={bgImage} x={0} y={0} width={W} height={BG_H} />
+          <KonvaImage
+            image={bgImage}
+            x={0} y={0}
+            width={bgImage.naturalWidth}
+            height={bgImage.naturalHeight}
+          />
         )}
 
-        {/* Lower white panel */}
-        <Rect x={0} y={LOWER_Y} width={W} height={LOWER_H} fill="white" />
-
-        {/* "2026" — vertical, left column, centred */}
-        {['2', '0', '2', '6'].map((ch, i) => (
+        {/* "2026" — vertical, left column, centred in bottom 469px */}
+        {['2', '0', '2', '6'].map((digit, i) => (
           <Text
             key={i}
             x={YEAR_X}
             y={yearStartY + i * YEAR_SPACING}
-            text={ch}
+            text={digit}
             fontSize={YEAR_FONT}
             fontFamily="UNicod Sans"
             fontStyle="normal"
@@ -236,7 +241,9 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           <Rect
             x={PHOTO_X} y={photoY}
             width={PHOTO_SIZE} height={PHOTO_SIZE}
-            fill="#d0d0d0"
+            fill={null}
+            stroke="#aaaaaa"
+            strokeWidth={2}
             cornerRadius={PHOTO_RADIUS}
           />
         )}
@@ -250,32 +257,35 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           fontStyle="normal"
           fill="#000000"
           width={TEXT_W}
+          align="left"
           wrap="word"
           lineHeight={NAME_LH / NAME_FONT}
         />
 
         {/* Role — 60px, UNicod Sans, #B20419 */}
         <Text
-          x={TEXT_X} y={textY + nameBlockH + TEXT_GAP}
+          x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE}
           text={role}
           fontSize={ROLE_FONT}
           fontFamily="UNicod Sans"
           fontStyle="normal"
           fill={BRAND_RED}
           width={TEXT_W}
+          align="left"
           wrap="word"
           lineHeight={ROLE_LH / ROLE_FONT}
         />
 
         {/* Film title — 60px, UNicod Sans Condensed, italic, #B20419 */}
         <Text
-          x={TEXT_X} y={textY + nameBlockH + TEXT_GAP + ROLE_LH + TEXT_GAP}
+          x={TEXT_X} y={textY + nameBlockH + GAP_NAME_ROLE + ROLE_LH + GAP_ROLE_FILM}
           text={filmTitle}
           fontSize={FILM_FONT}
           fontFamily="UNicod Sans Condensed"
           fontStyle="italic"
           fill={BRAND_RED}
           width={TEXT_W}
+          align="left"
           wrap="word"
           lineHeight={FILM_LH / FILM_FONT}
         />
