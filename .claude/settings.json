@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/sunni/Desktop/GitHub/Untitled/src /Users/sunni/Desktop/GitHub/Untitled/public/assets/fonts /Users/sunni/Desktop/GitHub/Untitled/public/assets/images)"
+    ],
+    "additionalDirectories": [
+      "/Users/sunni/Desktop/GitHub/Untitled"
+    ]
+  }
+}
