@@ -224,11 +224,12 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
 
   // ── Derived vertical layout ────────────────────────────────────────
   // Name — pre-compute space-only line breaks so Konva never sees hyphens as break points
-  const nameFontSize = ready ? getNameFontSize(name) : 77
+  const nameUpper    = name.toUpperCase()
+  const nameFontSize = ready ? getNameFontSize(nameUpper) : 77
   const nameLH       = Math.round(nameFontSize * 1.17)
   const nameWrapped  = ready
-    ? wrapLines(name, `normal ${nameFontSize}px "UNicod Sans Bold"`, TEXT_W).join('\n')
-    : name
+    ? wrapLines(nameUpper, `normal ${nameFontSize}px "UNicod Sans Bold"`, TEXT_W).join('\n')
+    : nameUpper
   const nameBlockH   = nameWrapped.split('\n').length * nameLH
 
   // Film title — always 1 line; font size steps down to fit
