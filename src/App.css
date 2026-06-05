@@ -2,8 +2,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #0a0a0a;
-  color: #fff;
+  background: #f4f4f4;
+  color: #111;
   min-height: 100vh;
 }
 
@@ -23,7 +23,7 @@ body {
 /* ── Header ──────────────────────────────────────────────── */
 .app-header {
   padding: 44px 0 32px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #e5e5e5;
   margin-bottom: 20px;
 }
 
@@ -31,13 +31,13 @@ body {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  color: #fff;
+  color: #111;
   margin-bottom: 6px;
 }
 
 .app-subtitle {
   font-size: 14px;
-  color: #555;
+  color: #888;
   margin-bottom: 28px;
 }
 
@@ -76,17 +76,17 @@ body {
 
 .step-text strong {
   font-size: 12px;
-  color: #ccc;
+  color: #222;
   font-weight: 600;
 }
 
 .step-text span {
   font-size: 11px;
-  color: #444;
+  color: #aaa;
 }
 
 .step-arrow {
-  color: #2a2a2a;
+  color: #ccc;
   font-size: 14px;
   padding: 0 14px;
   flex-shrink: 0;
@@ -94,8 +94,8 @@ body {
 
 /* ── Card ────────────────────────────────────────────────── */
 .card {
-  background: #111;
-  border: 1px solid #1e1e1e;
+  background: #fff;
+  border: 1px solid #e8e8e8;
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 14px;
@@ -131,7 +131,7 @@ body {
 .naming-rules-title {
   font-size: 10px;
   font-weight: 700;
-  color: #444;
+  color: #aaa;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin-bottom: 8px;
@@ -146,7 +146,7 @@ body {
 
 .naming-rules li {
   font-size: 12px;
-  color: #555;
+  color: #666;
   padding-left: 12px;
   position: relative;
   line-height: 1.5;
@@ -162,12 +162,12 @@ body {
 .naming-rules em { color: #888; font-style: normal; }
 
 .naming-rules code {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: #f4f4f4;
+  border: 1px solid #e0e0e0;
   border-radius: 3px;
   padding: 1px 5px;
   font-size: 11px;
-  color: #999;
+  color: #555;
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
 
@@ -185,7 +185,7 @@ body {
   justify-content: center;
   gap: 8px;
   padding: 28px 16px;
-  border: 1.5px dashed #242424;
+  border: 1.5px dashed #ddd;
   border-radius: 8px;
   cursor: pointer;
   text-align: center;
@@ -194,7 +194,7 @@ body {
 
 .upload-zone:hover {
   border-color: #CC0000;
-  background: rgba(204, 0, 0, 0.04);
+  background: rgba(204, 0, 0, 0.03);
 }
 
 .upload-icon  { font-size: 22px; }
@@ -202,21 +202,21 @@ body {
 .upload-label {
   font-size: 13px;
   font-weight: 600;
-  color: #ddd;
+  color: #222;
 }
 
 .upload-hint {
   font-size: 11px;
-  color: #3a3a3a;
+  color: #bbb;
 }
 
 .upload-chip {
   font-size: 11px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: #f4f4f4;
+  border: 1px solid #e0e0e0;
   border-radius: 20px;
   padding: 3px 10px;
-  color: #888;
+  color: #666;
 }
 
 /* ── Guest table ─────────────────────────────────────────── */
@@ -233,43 +233,43 @@ body {
   padding: 10px 14px;
   font-size: 10px;
   font-weight: 600;
-  color: #444;
+  color: #aaa;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #1a1a1a;
-  background: #0e0e0e;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
 }
 
 .guest-table td {
   padding: 10px 14px;
-  border-bottom: 1px solid #141414;
-  color: #999;
+  border-bottom: 1px solid #f0f0f0;
+  color: #555;
   vertical-align: middle;
 }
 
 .guest-table tbody tr:last-child td { border-bottom: none; }
-.guest-table tbody tr:hover td      { background: #161616; }
+.guest-table tbody tr:hover td      { background: #fafafa; }
 
-.row-missing td       { background: rgba(204, 0, 0, 0.05); }
-.row-missing:hover td { background: rgba(204, 0, 0, 0.09); }
+.row-missing td       { background: rgba(204, 0, 0, 0.04); }
+.row-missing:hover td { background: rgba(204, 0, 0, 0.07); }
 
-.td-num  { color: #333; width: 36px; font-size: 12px; }
-.td-name { font-weight: 500; color: #eee; }
-.td-mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 11px; color: #555; }
+.td-num  { color: #ccc; width: 36px; font-size: 12px; }
+.td-name { font-weight: 500; color: #111; }
+.td-mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 11px; color: #999; }
 
-.empty { color: #2a2a2a; font-style: normal; }
+.empty { color: #ccc; font-style: normal; }
 
-.status-found   { color: #22c55e; font-size: 12px; font-weight: 600; }
+.status-found   { color: #16a34a; font-size: 12px; font-weight: 600; }
 .status-missing { color: #CC0000; font-size: 12px; font-weight: 600; }
-.status-na      { color: #2a2a2a; font-size: 12px; }
+.status-na      { color: #ccc;    font-size: 12px; }
 
 .badge-vip {
   display: inline-block;
   padding: 2px 7px;
-  background: rgba(204, 0, 0, 0.15);
-  border: 1px solid rgba(204, 0, 0, 0.35);
+  background: rgba(204, 0, 0, 0.08);
+  border: 1px solid rgba(204, 0, 0, 0.25);
   border-radius: 4px;
-  color: #ff4444;
+  color: #CC0000;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -278,10 +278,10 @@ body {
 .badge-guest {
   display: inline-block;
   padding: 2px 7px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid #2a2a2a;
+  background: #f4f4f4;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-  color: #555;
+  color: #999;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -294,24 +294,24 @@ body {
   gap: 8px;
   padding: 12px 14px;
   font-size: 12px;
-  color: #444;
-  border-top: 1px solid #141414;
+  color: #aaa;
+  border-top: 1px solid #f0f0f0;
 }
 
-.sep       { color: #2a2a2a; }
-.s-matched { color: #22c55e; }
+.sep       { color: #ddd; }
+.s-matched { color: #16a34a; }
 .s-missing { color: #CC0000; }
 
 /* ── Generate ────────────────────────────────────────────── */
 .generate-card { display: flex; flex-direction: column; gap: 12px; }
 
 .missing-warning {
-  background: rgba(204, 0, 0, 0.07);
-  border: 1px solid rgba(204, 0, 0, 0.18);
+  background: rgba(204, 0, 0, 0.05);
+  border: 1px solid rgba(204, 0, 0, 0.15);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 12px;
-  color: #ff6666;
+  color: #CC0000;
   line-height: 1.5;
 }
 
@@ -329,11 +329,11 @@ body {
   transition: background 0.15s;
 }
 .btn-generate:hover:not(:disabled) { background: #aa0000; }
-.btn-generate:disabled { background: #1e1e1e; color: #333; cursor: not-allowed; }
+.btn-generate:disabled { background: #e8e8e8; color: #bbb; cursor: not-allowed; }
 
 .progress-wrap {
   height: 3px;
-  background: #1a1a1a;
+  background: #eee;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -348,7 +348,7 @@ body {
 .done-msg {
   text-align: center;
   font-size: 14px;
-  color: #22c55e;
+  color: #16a34a;
   padding: 2px 0;
 }
 
@@ -356,7 +356,7 @@ body {
 .app-footer {
   text-align: center;
   font-size: 11px;
-  color: #242424;
+  color: #bbb;
   padding: 36px 0 0;
   letter-spacing: 0.3px;
 }
