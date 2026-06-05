@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import JSZip from 'jszip'
+import { jsPDF } from 'jspdf'
 import { parseCSV } from './csvParser'
 import BadgeCanvas from './BadgeCanvas'
 import './App.css'
@@ -16,9 +16,9 @@ export default function App() {
   const [progress, setProgress]     = useState({ done: 0, total: 0 })
   const [finished, setFinished]     = useState(false)
 
-  const batchRef    = useRef()
-  const zipRef      = useRef(null)
-  const batchIdxRef = useRef(0)
+  const batchRef      = useRef()
+  const pdfPagesRef   = useRef([])   // collects dataURLs, one per badge
+  const batchIdxRef   = useRef(0)
   const guestsRef   = useRef([])
   const photosRef   = useRef({})
 
@@ -67,21 +67,14 @@ export default function App() {
   }, [])
 
   // ── Batch export callback ───────────────────────────────────────────
-  const handleExportReady = useCallback(async () => {
+  const handleExportReady = useCallback(() => {
     const dataURL = batchRef.current?.exportPNG()
     if (!dataURL) return
 
-    const idx   = batchIdxRef.current
-    const guest = guestsRef.current[idx]
+    // Collect this badge as a PDF page
+    pdfPagesRef.current.push(dataURL)
 
-    const safe = guest.name
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
-    const filename = `${String(idx + 1).padStart(2, '0')}_${safe}.png`
-
-    zipRef.current.file(filename, dataURL.split(',')[1], { base64: true })
-
-    const next = idx + 1
+    const next = batchIdxRef.current + 1
     batchIdxRef.current = next
     setProgress({ done: next, total: guestsRef.current.length })
 
@@ -89,16 +82,18 @@ export default function App() {
       const g = guestsRef.current[next]
       setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
     } else {
-      const blob = await zipRef.current.generateAsync({ type: 'blob' })
-      const url  = URL.createObjectURL(blob)
-      const a    = Object.assign(document.createElement('a'), { href: url, download: 'badges.zip' })
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      // All badges collected — build one PDF, one page per badge (4.09" × 5.65" @ 300dpi)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4.09, 5.65] })
+      pdfPagesRef.current.forEach((url, i) => {
+        if (i > 0) pdf.addPage([4.09, 5.65], 'portrait')
+        pdf.addImage(url, 'PNG', 0, 0, 4.09, 5.65)
+      })
+      pdf.save('nyaff-2026-badges.pdf')
+
       setGenerating(false)
       setFinished(true)
       setBatchGuest(null)
+      pdfPagesRef.current = []
     }
   }, [resolvePhoto])
 
@@ -108,7 +103,7 @@ export default function App() {
     setGenerating(true)
     setFinished(false)
     setProgress({ done: 0, total: guests.length })
-    zipRef.current      = new JSZip()
+    pdfPagesRef.current = []
     batchIdxRef.current = 0
     const g = guests[0]
     setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
@@ -135,7 +130,7 @@ export default function App() {
 
       {/* Header */}
       <header className="app-header">
-        <h1 className="app-title">NYAFF Badge Generator</h1>
+        <h1 className="app-title">NYAFF 2026 Guest &amp; VIP Badge Generator</h1>
         <p className="app-subtitle">Generate print-ready guest badges in seconds</p>
 
         <div className="steps">
@@ -150,7 +145,7 @@ export default function App() {
           <div className="step">
             <span className="step-num">2</span>
             <div className="step-text">
-              <strong>Upload CSV + photos</strong>
+              <strong>Upload CSV + photo folder</strong>
               <span>Match filenames to CSV</span>
             </div>
           </div>
@@ -159,7 +154,7 @@ export default function App() {
             <span className="step-num">3</span>
             <div className="step-text">
               <strong>Generate &amp; download</strong>
-              <span>All badges as ZIP</span>
+              <span>All badges as one PDF</span>
             </div>
           </div>
         </div>
@@ -291,14 +286,14 @@ export default function App() {
           )}
 
           {finished && (
-            <div className="done-msg">✓ Done! <strong>badges.zip</strong> downloaded</div>
+            <div className="done-msg">✓ Done! <strong>nyaff-2026-badges.pdf</strong> downloaded</div>
           )}
         </section>
       )}
 
       {/* Footer */}
       <footer className="app-footer">
-        NYAFF 2026 · Internal Tool · For Design Team Use Only
+        NYAFF 2026 Guest &amp; VIP Badge Generator · Internal Tool · For Design Team Use Only
       </footer>
 
       {/* Hidden off-screen batch canvas */}
