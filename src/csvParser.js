@@ -23,12 +23,14 @@ function pick(obj, keywords) {
   for (const kw of keywords) {
     if (obj[kw] !== undefined && obj[kw] !== '') return obj[kw]
   }
-  // 2. Partial / fuzzy match (key contains keyword or keyword contains key)
+  // 2. Partial / fuzzy match — column name must contain the keyword,
+  // not the other way around. The reverse direction caused "filmname".includes("name")
+  // to match the name column as filmTitle.
   const stripped = kw => kw.replace(/[_\s-]/g, '')
   const kwNorm = keywords.map(stripped)
   const fuzzyKey = Object.keys(obj).find(k => {
     const kn = stripped(k)
-    return kwNorm.some(kw => kn.includes(kw) || kw.includes(kn))
+    return kwNorm.some(kw => kn.includes(kw))
   })
   return fuzzyKey ? obj[fuzzyKey] : ''
 }
@@ -43,7 +45,10 @@ export function parseCSV(text) {
 
   const lines = clean.split(/\r?\n/)
   const headers = parseRow(lines[0], delim).map(h =>
-    h.trim().toLowerCase().replace(/[\s-]+/g, '_')
+    h.trim()
+      .replace(/([a-z])([A-Z])/g, '$1_$2')   // camelCase → snake_case
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_')
   )
 
   console.log('[CSV] columns detected:', headers)
