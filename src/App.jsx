@@ -4,25 +4,37 @@ import { parseCSV } from './csvParser'
 import BadgeCanvas from './BadgeCanvas'
 import './App.css'
 
+const TEMPLATE_CSV = `name,role,filmTitle,photo\nJohn Smith,Director,Film Title Here,john.jpg`
+
 export default function App() {
   const [guests, setGuests]   = useState([])
-  const [photos, setPhotos]   = useState({})   // filename → objectURL
+  const [photos, setPhotos]   = useState({})
   const [csvName, setCsvName] = useState('')
 
-  // Batch generation
   const [generating, setGenerating] = useState(false)
   const [batchGuest, setBatchGuest] = useState(null)
   const [progress, setProgress]     = useState({ done: 0, total: 0 })
   const [finished, setFinished]     = useState(false)
 
-  const batchRef      = useRef()
-  const zipRef        = useRef(null)
-  const batchIdxRef   = useRef(0)
-  const guestsRef     = useRef([])
-  const photosRef     = useRef({})
+  const batchRef    = useRef()
+  const zipRef      = useRef(null)
+  const batchIdxRef = useRef(0)
+  const guestsRef   = useRef([])
+  const photosRef   = useRef({})
 
   useEffect(() => { guestsRef.current = guests }, [guests])
   useEffect(() => { photosRef.current = photos },  [photos])
+
+  // ── Template download ───────────────────────────────────────────────
+  const downloadTemplate = useCallback(() => {
+    const blob = new Blob([TEMPLATE_CSV], { type: 'text/csv' })
+    const url  = URL.createObjectURL(blob)
+    const a    = Object.assign(document.createElement('a'), { href: url, download: 'nyaff-badge-template.csv' })
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [])
 
   // ── CSV upload ──────────────────────────────────────────────────────
   const handleCSV = useCallback(async e => {
@@ -32,7 +44,7 @@ export default function App() {
     setGuests(parseCSV(text))
     setCsvName(file.name)
     setFinished(false)
-    e.target.value = ''   // allow re-uploading the same file
+    e.target.value = ''
   }, [])
 
   // ── Photo folder upload ─────────────────────────────────────────────
@@ -43,20 +55,18 @@ export default function App() {
 
   const handlePhotos = useCallback(e => {
     const map = {}
-    Array.from(e.target.files).forEach(f => {
-      map[f.name] = URL.createObjectURL(f)
-    })
+    Array.from(e.target.files).forEach(f => { map[f.name] = URL.createObjectURL(f) })
     setPhotos(map)
-    e.target.value = ''   // allow re-uploading the same folder
+    e.target.value = ''
   }, [])
 
-  // ── Resolve photo URL for a guest ───────────────────────────────────
+  // ── Resolve photo URL ───────────────────────────────────────────────
   const resolvePhoto = useCallback(filename => {
     if (!filename) return null
-    return photosRef.current[filename] || null  // null → gray placeholder in canvas
+    return photosRef.current[filename] || null
   }, [])
 
-  // ── Batch: export-ready callback ────────────────────────────────────
+  // ── Batch export callback ───────────────────────────────────────────
   const handleExportReady = useCallback(async () => {
     const dataURL = batchRef.current?.exportPNG()
     if (!dataURL) return
@@ -64,7 +74,6 @@ export default function App() {
     const idx   = batchIdxRef.current
     const guest = guestsRef.current[idx]
 
-    // Sanitise filename (strip diacritics, keep letters/numbers/hyphens)
     const safe = guest.name
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
@@ -80,17 +89,13 @@ export default function App() {
       const g = guestsRef.current[next]
       setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
     } else {
-      // All done — zip & download
       const blob = await zipRef.current.generateAsync({ type: 'blob' })
       const url  = URL.createObjectURL(blob)
-      const a    = Object.assign(document.createElement('a'), {
-        href: url, download: 'badges.zip',
-      })
+      const a    = Object.assign(document.createElement('a'), { href: url, download: 'badges.zip' })
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-
       setGenerating(false)
       setFinished(true)
       setBatchGuest(null)
@@ -103,103 +108,191 @@ export default function App() {
     setGenerating(true)
     setFinished(false)
     setProgress({ done: 0, total: guests.length })
-    zipRef.current    = new JSZip()
+    zipRef.current      = new JSZip()
     batchIdxRef.current = 0
-
     const g = guests[0]
     setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
   }, [guests, generating, resolvePhoto])
 
-  // ── Render ───────────────────────────────────────────────────────────
-  const photoCount = Object.keys(photos).length
+  // ── Stats ───────────────────────────────────────────────────────────
+  const photoCount   = Object.keys(photos).length
+  const hasPhotos    = photoCount > 0
+  const photoGuests  = guests.filter(g => g.photo)
+  const matchedCount = hasPhotos ? photoGuests.filter(g =>  photos[g.photo]).length : 0
+  const missingCount = hasPhotos ? photoGuests.filter(g => !photos[g.photo]).length : 0
 
+  const statusCell = g => {
+    if (!g.photo)       return <span className="status-na">—</span>
+    if (!hasPhotos)     return <span className="status-na">—</span>
+    if (photos[g.photo]) return <span className="status-found">✓ Found</span>
+    return <span className="status-missing">✗ Missing</span>
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className="app">
-      <h1>NYAFF 2026 Badge Generator</h1>
+      <div className="brand-line" />
 
-      {/* Upload row */}
-      <div className="upload-row">
-        <label className="upload-btn">
-          <input type="file" accept=".csv" onChange={handleCSV} hidden />
-          <span className="icon">📄</span>
-          Upload CSV
-          {csvName && <span className="chip">{guests.length} guests</span>}
-        </label>
+      {/* Header */}
+      <header className="app-header">
+        <h1 className="app-title">NYAFF Badge Generator</h1>
+        <p className="app-subtitle">Generate print-ready guest badges in seconds</p>
 
-        <label className="upload-btn">
-          <input
-            ref={photoInputRef}
-            type="file"
-            multiple
-            onChange={handlePhotos}
-            hidden
-          />
-          <span className="icon">🖼</span>
-          Upload Photos Folder
-          {photoCount > 0 && <span className="chip">{photoCount} files</span>}
-        </label>
-      </div>
-
-      {/* Guest list */}
-      {guests.length > 0 && (
-        <div className="guest-list">
-          <div className="guest-list-header">
-            {guests.length} {guests.length === 1 ? 'guest' : 'guests'}
+        <div className="steps">
+          <div className="step">
+            <span className="step-num">1</span>
+            <div className="step-text">
+              <strong>Download CSV template</strong>
+              <span>Fill in guest info</span>
+            </div>
           </div>
-          {guests.map((g, i) => {
-            const thumbSrc = photos[g.photo] || null
-            return (
-              <div key={i} className="guest-row">
-                <div className="thumb">
-                  {thumbSrc && (
-                    <img
-                      src={thumbSrc}
-                      alt=""
-                      onError={e => { e.target.style.display = 'none' }}
-                    />
-                  )}
-                </div>
-                <div className="guest-info">
-                  <div className="guest-name">{g.name}</div>
-                  <div className="guest-role">{g.role || <span style={{color:'#ccc'}}>no role</span>}</div>
-                  <div className="guest-film">{g.filmTitle || <span style={{color:'#ccc'}}>no film title</span>}</div>
-                </div>
-                <div className="guest-idx">#{i + 1}</div>
-              </div>
-            )
-          })}
+          <div className="step-arrow">→</div>
+          <div className="step">
+            <span className="step-num">2</span>
+            <div className="step-text">
+              <strong>Upload CSV + photos</strong>
+              <span>Match filenames to CSV</span>
+            </div>
+          </div>
+          <div className="step-arrow">→</div>
+          <div className="step">
+            <span className="step-num">3</span>
+            <div className="step-text">
+              <strong>Generate &amp; download</strong>
+              <span>All badges as ZIP</span>
+            </div>
+          </div>
         </div>
+      </header>
+
+      {/* Template download */}
+      <section className="card">
+        <div className="template-row">
+          <button className="btn-primary" onClick={downloadTemplate}>
+            ↓ Download CSV Template
+          </button>
+          <div className="naming-rules">
+            <div className="naming-rules-title">Photo Naming Rules</div>
+            <ul>
+              <li>Photo filename must match <em>exactly</em> what's in the CSV "photo" column</li>
+              <li>Supported formats: .jpg, .jpeg, .png</li>
+              <li>Example: if CSV says <code>john.jpg</code>, your file must be named <code>john.jpg</code></li>
+              <li>Names are case-sensitive: <code>John.jpg</code> ≠ <code>john.jpg</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Upload */}
+      <section className="card">
+        <div className="upload-row">
+          <label className="upload-zone">
+            <input type="file" accept=".csv" onChange={handleCSV} hidden />
+            <span className="upload-icon">📄</span>
+            <span className="upload-label">Upload CSV</span>
+            {csvName
+              ? <span className="upload-chip">{csvName} · {guests.length} guests</span>
+              : <span className="upload-hint">.csv files only</span>
+            }
+          </label>
+
+          <label className="upload-zone">
+            <input ref={photoInputRef} type="file" multiple onChange={handlePhotos} hidden />
+            <span className="upload-icon">🖼</span>
+            <span className="upload-label">Upload Photos Folder</span>
+            {hasPhotos
+              ? <span className="upload-chip">{photoCount} files loaded</span>
+              : <span className="upload-hint">Select entire folder</span>
+            }
+          </label>
+        </div>
+      </section>
+
+      {/* Guest table */}
+      {guests.length > 0 && (
+        <section className="card table-card">
+          <table className="guest-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Film Title</th>
+                <th>Photo File</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {guests.map((g, i) => (
+                <tr key={i} className={hasPhotos && g.photo && !photos[g.photo] ? 'row-missing' : ''}>
+                  <td className="td-num">{i + 1}</td>
+                  <td className="td-name">{g.name      || <em className="empty">—</em>}</td>
+                  <td>{g.role      || <em className="empty">—</em>}</td>
+                  <td>{g.filmTitle || <em className="empty">—</em>}</td>
+                  <td className="td-mono">{g.photo || <em className="empty">—</em>}</td>
+                  <td>{statusCell(g)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="table-summary">
+            <span>{guests.length} guests loaded</span>
+            {hasPhotos && (
+              <>
+                <span className="sep">·</span>
+                <span className="s-matched">{matchedCount} photos matched</span>
+                {missingCount > 0 && (
+                  <>
+                    <span className="sep">·</span>
+                    <span className="s-missing">{missingCount} missing</span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </section>
       )}
 
-      {/* Generate button + status */}
+      {/* Generate */}
       {guests.length > 0 && (
-        <div className="generate-area">
+        <section className="card generate-card">
+          {missingCount > 0 && !generating && (
+            <div className="missing-warning">
+              ⚠ {missingCount} photo{missingCount > 1 ? 's' : ''} missing — check filenames before generating.
+              Missing photos will use a gray placeholder.
+            </div>
+          )}
+
           <button
-            className="generate-btn"
+            className="btn-generate"
             onClick={startGeneration}
             disabled={generating}
           >
             {generating
               ? `Generating ${progress.done} / ${progress.total}…`
-              : 'Generate All Badges'}
+              : 'Generate All Badges'
+            }
           </button>
 
           {generating && (
-            <div className="progress-bar-wrap">
+            <div className="progress-wrap">
               <div
-                className="progress-bar-fill"
+                className="progress-fill"
                 style={{ width: `${(progress.done / progress.total) * 100}%` }}
               />
             </div>
           )}
 
           {finished && (
-            <div className="done-msg">
-              ✅ Done! Downloaded <strong>badges.zip</strong>
-            </div>
+            <div className="done-msg">✓ Done! <strong>badges.zip</strong> downloaded</div>
           )}
-        </div>
+        </section>
       )}
+
+      {/* Footer */}
+      <footer className="app-footer">
+        NYAFF 2026 · Internal Tool · For Design Team Use Only
+      </footer>
 
       {/* Hidden off-screen batch canvas */}
       {generating && batchGuest && (
