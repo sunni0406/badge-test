@@ -81,6 +81,13 @@ function loadImage(src) {
   })
 }
 
+// Cache bg images by URL so switching badge types doesn't re-fetch
+const _bgCache = {}
+function loadBg(url) {
+  if (!_bgCache[url]) _bgCache[url] = loadImage(url)
+  return _bgCache[url]
+}
+
 // Break text into lines splitting ONLY on spaces.
 // Hyphenated words (e.g. "Kore-eda") are treated as a single atomic unit.
 function wrapLines(text, fontStr, maxW) {
@@ -138,7 +145,8 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
     role           = 'Director',
     filmTitle      = 'Film Title',
     photo          = null,
-    onExportReady  = null,   // called once when stage + photo are both ready
+    badgeType      = 'guest',  // 'vip' → VIP bg, anything else → guest bg
+    onExportReady  = null,
   },
   ref
 ) {
@@ -152,26 +160,31 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
   const onExportReadyRef = useRef(onExportReady)
   useEffect(() => { onExportReadyRef.current = onExportReady }, [onExportReady])
 
-  // Guard: fire onExportReady exactly once per photo value
+  // Guard: fire onExportReady exactly once per (photo, badgeType) combination
   const exportFiredRef = useRef(false)
-  useEffect(() => { exportFiredRef.current = false }, [photo])
+  useEffect(() => { exportFiredRef.current = false }, [photo, badgeType])
 
-  // Await all fonts + background before showing Stage
+  // Load fonts (once) + background (per badgeType, cached)
+  const bgUrl = badgeType?.toLowerCase() === 'vip'
+    ? '/assets/images/2026%20VIP%20BADGE.png'
+    : '/assets/images/2026%20GUEST%20BADGE.png'
+
   useEffect(() => {
     let alive = true
+    setReady(false)
     async function init() {
       await ensureFonts()
       try {
-        const img = await loadImage('/assets/images/bg%20placeholder.png')
+        const img = await loadBg(bgUrl)
         if (alive) setBgImage(img)
       } catch {
-        // missing background — canvas still renders
+        // missing background — canvas still renders without it
       }
       if (alive) setReady(true)
     }
     init()
     return () => { alive = false }
-  }, [])
+  }, [bgUrl])
 
   // Reload photo when prop changes.
   // We also track loadedPhotoUrl so the export-ready check can verify

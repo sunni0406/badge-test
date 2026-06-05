@@ -65,6 +65,7 @@ export function parseCSV(text) {
         role:      pick(obj, ['role', 'position', 'job_title', 'job', 'designation', 'title_role']),
         filmTitle: pick(obj, ['film_title', 'film', 'movie_title', 'movie', 'film_name', 'title', 'project', 'work']),
         photo:     pick(obj, ['photo', 'image', 'headshot', 'pic', 'photo_file', 'filename', 'file', 'img']),
+        badgeType: pick(obj, ['badge_type', 'badgetype', 'badge']),
       }
       return guest
     })

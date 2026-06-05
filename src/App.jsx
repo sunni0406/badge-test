@@ -4,7 +4,7 @@ import { parseCSV } from './csvParser'
 import BadgeCanvas from './BadgeCanvas'
 import './App.css'
 
-const TEMPLATE_CSV = `name,role,filmTitle,photo\nJohn Smith,Director,Film Title Here,john.jpg`
+const TEMPLATE_CSV = `name,role,filmTitle,badgeType,photo\nJohn Smith,Director,Film Title Here,GUEST,john.jpg\nJane Doe,Producer,Another Film,VIP,jane.jpg`
 
 export default function App() {
   const [guests, setGuests]   = useState([])
@@ -218,6 +218,7 @@ export default function App() {
                 <th>Name</th>
                 <th>Role</th>
                 <th>Film Title</th>
+                <th>Badge</th>
                 <th>Photo File</th>
                 <th>Status</th>
               </tr>
@@ -229,6 +230,12 @@ export default function App() {
                   <td className="td-name">{g.name      || <em className="empty">—</em>}</td>
                   <td>{g.role      || <em className="empty">—</em>}</td>
                   <td>{g.filmTitle || <em className="empty">—</em>}</td>
+                  <td>
+                    {g.badgeType?.toUpperCase() === 'VIP'
+                      ? <span className="badge-vip">VIP</span>
+                      : <span className="badge-guest">GUEST</span>
+                    }
+                  </td>
                   <td className="td-mono">{g.photo || <em className="empty">—</em>}</td>
                   <td>{statusCell(g)}</td>
                 </tr>
@@ -303,6 +310,7 @@ export default function App() {
             role={batchGuest.role}
             filmTitle={batchGuest.filmTitle}
             photo={batchGuest.photoUrl}
+            badgeType={batchGuest.badgeType}
             onExportReady={handleExportReady}
           />
         </div>
