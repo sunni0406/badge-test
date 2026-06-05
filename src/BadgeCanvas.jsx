@@ -31,14 +31,19 @@ const ROLE_FONT  = 60
 const ROLE_LH    = 72
 const GAP_ROLE_FILM = 10  // role → film title gap (tight)
 
-// Char-count based font sizes (no measurement needed)
+// Name: fixed 77px; only drop to 60px if 2 lines still can't fit
 function getNameFontSize(name) {
-  if (name.length <= 15) return 77
-  if (name.length <= 20) return 60
-  return 48
+  return countLines(name, `normal 77px "UNicod Sans Bold"`, TEXT_W) <= 2 ? 77 : 60
 }
+
+// Film title: step down until it fits on one line (60 → 48 → 36)
 function getFilmFontSize(filmTitle) {
-  return filmTitle.length <= 20 ? 60 : 48
+  for (const size of [60, 48, 36]) {
+    if (countLines(filmTitle, `normal ${size}px "UNicod Sans Medium Italic"`, TEXT_W) <= 1) {
+      return size
+    }
+  }
+  return 36
 }
 
 const BRAND_RED  = '#B20419'
@@ -76,22 +81,29 @@ function loadImage(src) {
   })
 }
 
-// Measure word-wrapped line count using Canvas 2D (fonts must be loaded first)
-function countLines(text, fontStr, maxW) {
+// Break text into lines splitting ONLY on spaces.
+// Hyphenated words (e.g. "Kore-eda") are treated as a single atomic unit.
+function wrapLines(text, fontStr, maxW) {
   const ctx = document.createElement('canvas').getContext('2d')
   ctx.font = fontStr
-  let lines = 1
+  const words = text.split(' ')
+  const lines = []
   let cur = ''
-  for (const word of text.split(' ')) {
+  for (const word of words) {
     const test = cur ? `${cur} ${word}` : word
-    if (ctx.measureText(test).width > maxW && cur) {
-      lines++
+    if (cur && ctx.measureText(test).width > maxW) {
+      lines.push(cur)
       cur = word
     } else {
       cur = test
     }
   }
-  return lines
+  if (cur) lines.push(cur)
+  return lines.length ? lines : ['']
+}
+
+function countLines(text, fontStr, maxW) {
+  return wrapLines(text, fontStr, maxW).length
 }
 
 // Centre-crop image to square
@@ -211,19 +223,18 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
   const midY       = ch - 64 - yearTotalH / 2      // year bottom = ch - 64
 
   // ── Derived vertical layout ────────────────────────────────────────
-  // Name
+  // Name — pre-compute space-only line breaks so Konva never sees hyphens as break points
   const nameFontSize = ready ? getNameFontSize(name) : 77
   const nameLH       = Math.round(nameFontSize * 1.17)
-  const nameLines    = ready ? countLines(name, `normal ${nameFontSize}px "UNicod Sans Bold"`, TEXT_W) : 1
-  const nameBlockH   = nameLines * nameLH
+  const nameWrapped  = ready
+    ? wrapLines(name, `normal ${nameFontSize}px "UNicod Sans Bold"`, TEXT_W).join('\n')
+    : name
+  const nameBlockH   = nameWrapped.split('\n').length * nameLH
 
-  // Film title
+  // Film title — always 1 line; font size steps down to fit
   const filmFontSize = ready ? getFilmFontSize(filmTitle) : 60
   const filmLH       = Math.round(filmFontSize * 1.17)
-  const filmLines    = ready
-    ? countLines(filmTitle, `normal ${filmFontSize}px "UNicod Sans Medium Italic"`, TEXT_W)
-    : 1
-  const filmBlockH   = filmLines * filmLH
+  const filmBlockH   = filmLH   // single line, never wraps
 
   // Photo: vertically centred at midY
   const photoY = Math.round(midY - PHOTO_SIZE / 2)
@@ -311,21 +322,21 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           />
         )}
 
-        {/* Name — top aligns with photo top, adaptive size by char count */}
+        {/* Name — line breaks pre-computed (space-only), so Konva won't split on hyphens */}
         <Text
           x={TEXT_X} y={nameY}
-          text={name}
+          text={nameWrapped}
           fontSize={nameFontSize}
           fontFamily="UNicod Sans Bold"
           fontStyle="normal"
           fill="#000000"
           width={TEXT_W}
           align="left"
-          wrap="word"
+          wrap="none"
           lineHeight={nameLH / nameFontSize}
         />
 
-        {/* Role — sits just above film title (10px gap) */}
+        {/* Role — single line, truncate with ellipsis if too long */}
         <Text
           x={TEXT_X} y={roleY}
           text={role}
@@ -334,12 +345,14 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           fontStyle="normal"
           fill={BRAND_RED}
           width={TEXT_W}
+          height={ROLE_LH}
           align="left"
-          wrap="word"
+          wrap="none"
+          ellipsis={true}
           lineHeight={ROLE_LH / ROLE_FONT}
         />
 
-        {/* Film title — bottom aligns with photo bottom */}
+        {/* Film title — single line, bottom aligns with photo bottom */}
         <Text
           x={TEXT_X} y={filmTitleY}
           text={filmTitle}
@@ -349,7 +362,7 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
           fill={BRAND_RED}
           width={TEXT_W}
           align="left"
-          wrap="word"
+          wrap="none"
           lineHeight={filmLH / filmFontSize}
         />
 
