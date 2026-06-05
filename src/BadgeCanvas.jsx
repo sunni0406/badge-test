@@ -11,8 +11,7 @@ import { Stage, Layer, Image as KonvaImage, Text, Rect, Group } from 'react-konv
 // ─── Canvas ──────────────────────────────────────────────────────────
 // Stage dimensions match bgImage.naturalWidth/Height exactly (no scaling).
 // Dynamic content lives in the bottom CONTENT_H pixels, transparent over the bg.
-const PIXEL_RATIO = 3
-const CONTENT_H   = 469   // px — fixed height of the dynamic content band
+const PIXEL_RATIO = 3   // used by exportPNG for high-res PNG output
 
 // ─── Horizontal layout (Figma values for 1227px canvas width) ────────
 // Right margin: 118 | Text width: 516 | Photo: 355 | Gap year→photo: 77

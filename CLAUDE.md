@@ -1,37 +1,41 @@
 # NYAFF Badge Generator
 
-## 目标
-批量生成 NYAFF 活动名牌。
-输入：CSV 嘉宾名单 + 照片文件夹
-输出：印刷级 PNG，每张独立文件
+## Goal
+Batch-generate NYAFF event badges.
+Input: CSV guest list + photo folder
+Output: Print-quality PDF, one page per badge
 
-## 印刷规格
-- 尺寸：4.09" × 5.65" @ 300dpi
-- 像素：1227 × 1695 px
-- pixelRatio: 3（Konva 导出用）
+## Print Specs
+- Size: 4.09" × 5.65" @ 300 dpi
+- Pixels: 1227 × 1695 px
+- pixelRatio: 1 for PDF export (1227 × 1695 px = 300 dpi at 4.09" × 5.65")
 
-## 技术栈
+## Tech Stack
 - React + Vite
-- Konva.js（Canvas 渲染，禁止用 HTML/CSS 生成名牌）
-- 导出：stage.toDataURL()
+- Konva.js (canvas rendering — badges must not be generated with HTML/CSS)
+- Export: stage.toDataURL() → jsPDF
 
-## 文件位置
-- 背景图：public/assets/images/
-- 字体：public/assets/fonts/
-- 模板配置：src/templates/
+## File Locations
+- Background images: public/assets/images/
+- Fonts: public/assets/fonts/
+- Badge canvas component: src/BadgeCanvas.jsx
+- App UI and batch logic: src/App.jsx
 
-## 动态字段（每位嘉宾不同）
-- NAME：嘉宾姓名，字号自适应（名字有长有短）
-- ROLE：职位/角色，红色
-- FILM_TITLE：片名，红色斜体
-- PHOTO：头像，正方形裁切
+## Dynamic Fields (per guest)
+- NAME: guest name, all-caps, adaptive font size, word-wrap on spaces only
+- ROLE: job title, red, single line with ellipsis
+- FILM_TITLE: film name, red italic, single line (font steps down 60→48→36px to fit)
+- PHOTO: headshot, square-cropped, rounded corners
+- BADGE_TYPE: "GUEST" or "VIP" — selects the correct background image
 
-## 固定元素
-- 背景图（上半部分）：直接用 PNG
-- 年份"2026"竖排：固定
-- 品牌色：红色 #CC0000
+## Fixed Elements
+- Background PNG (top portion): rendered at natural size
+- Year "2026" vertical stack: fixed position
+- Brand red: #B20419 (canvas) / #CC0000 (UI)
 
-## 布局规则
-- 名字过长时自动换行，不得溢出边界
-- 所有边距跟随品牌规范
-- 字体从 public/assets/fonts/ 加载
+## Layout Rules
+- Name top aligns with photo top
+- Film title bottom aligns with photo bottom
+- Role sits 10px above film title
+- Word-wrap only on spaces — hyphenated words (e.g. "Kore-eda") never split
+- Fonts loaded from public/assets/fonts/ via FontFace API before any render
