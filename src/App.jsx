@@ -107,8 +107,10 @@ export default function App() {
           <h1 className="title">NYAFF Badge Generator</h1>
           <span className="year-tag">2026</span>
         </div>
-        <p className="subtitle">Generate print-ready badges for guests and VIPs.</p>
+        <p className="subtitle">Generate print-ready guest and VIP badges.</p>
       </header>
+
+      <div className="rule" />
 
       {/* Steps */}
       <section className="section steps-section">

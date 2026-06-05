@@ -12,7 +12,7 @@ body {
 .app {
   max-width: 780px;
   margin: 0 auto;
-  padding: 0 32px 64px;
+  padding: 0 40px 80px;
 }
 
 .brand-bar {
@@ -22,14 +22,14 @@ body {
 
 /* ── Header ─────────────────────────────────────────────── */
 .header {
-  padding: 36px 0 20px;
+  padding: 48px 0 32px;
 }
 
 .header-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .title {
@@ -55,7 +55,7 @@ body {
 }
 
 /* ── Steps ──────────────────────────────────────────────── */
-.steps-section { padding: 14px 0 24px; }
+.steps-section { padding: 28px 0 32px; }
 
 .steps {
   display: grid;
@@ -70,7 +70,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border-right: 1px solid #e2ddd8;
 }
 .step-item:last-child { border-right: none; }
@@ -97,7 +97,7 @@ body {
 
 /* ── CSV guide ───────────────────────────────────────────── */
 .csv-guide {
-  margin-top: 20px;
+  margin-top: 16px;
   border: 1px solid #e2ddd8;
   border-radius: 8px;
   background: #fff;
@@ -165,7 +165,7 @@ body {
 
 /* ── Section ────────────────────────────────────────────── */
 .section {
-  padding: 24px 0;
+  padding: 28px 0;
 }
 
 /* ── Template ───────────────────────────────────────────── */
@@ -204,7 +204,7 @@ body {
   background: #fff;
   border: 1px solid #e2ddd8;
   border-radius: 7px;
-  padding: 11px 14px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: border-color 0.15s;
   margin-bottom: 8px;
@@ -326,7 +326,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 11px 16px;
   font-size: 12px;
   color: #bbb;
   border-top: 1px solid #f0ede8;
@@ -337,7 +337,7 @@ body {
 .s-missing  { color: #CC0000; }
 
 /* ── Generate ───────────────────────────────────────────── */
-.generate-section { padding-top: 16px; }
+.generate-section { padding-top: 24px; padding-bottom: 8px; }
 
 .warning-text {
   font-size: 12px;
@@ -393,12 +393,12 @@ body {
 
 /* ── Footer ─────────────────────────────────────────────── */
 .footer {
-  padding: 24px 0 0;
+  padding: 28px 0 0;
   font-size: 11px;
   color: #ccc;
   letter-spacing: 0.2px;
   border-top: 1px solid #e8e5e0;
-  margin-top: 8px;
+  margin-top: 16px;
 }
 
 /* ── Hidden batch canvas ────────────────────────────────── */
