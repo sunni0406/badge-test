@@ -269,6 +269,9 @@ const BadgeCanvas = forwardRef(function BadgeCanvas(
   useImperativeHandle(ref, () => ({
     exportPNG: () =>
       stageRef.current?.toDataURL({ pixelRatio: PIXEL_RATIO, mimeType: 'image/png' }),
+    // pixelRatio:1 → 1227×1695px → exactly 300dpi on a 4.09"×5.65" PDF page
+    exportForPDF: () =>
+      stageRef.current?.toDataURL({ mimeType: 'image/png', quality: 1.0, pixelRatio: 1 }),
   }), [])
 
   // ── Loading state — Stage is not mounted until fonts + bg are ready ─

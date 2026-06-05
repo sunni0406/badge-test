@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import JSZip from 'jszip'
+import { jsPDF } from 'jspdf'
 import { parseCSV } from './csvParser'
 import BadgeCanvas from './BadgeCanvas'
 import './App.css'
@@ -17,7 +17,7 @@ export default function App() {
   const [finished, setFinished]     = useState(false)
 
   const batchRef    = useRef()
-  const zipRef      = useRef(null)
+  const pdfRef      = useRef(null)   // jsPDF instance built page-by-page
   const batchIdxRef = useRef(0)
   const guestsRef   = useRef([])
   const photosRef   = useRef({})
@@ -67,19 +67,15 @@ export default function App() {
   }, [])
 
   // ── Batch export callback ───────────────────────────────────────────
-  const handleExportReady = useCallback(async () => {
-    const dataURL = batchRef.current?.exportPNG()
+  const handleExportReady = useCallback(() => {
+    const dataURL = batchRef.current?.exportForPDF()
     if (!dataURL) return
 
-    const idx   = batchIdxRef.current
-    const guest = guestsRef.current[idx]
+    const idx = batchIdxRef.current
 
-    const safe = guest.name
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
-    const filename = `${String(idx + 1).padStart(2, '0')}_${safe}.png`
-
-    zipRef.current.file(filename, dataURL.split(',')[1], { base64: true })
+    // Add a new page for every badge after the first
+    if (idx > 0) pdfRef.current.addPage()
+    pdfRef.current.addImage(dataURL, 'PNG', 0, 0, 4.09, 5.65)
 
     const next = idx + 1
     batchIdxRef.current = next
@@ -89,13 +85,7 @@ export default function App() {
       const g = guestsRef.current[next]
       setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
     } else {
-      const blob = await zipRef.current.generateAsync({ type: 'blob' })
-      const url  = URL.createObjectURL(blob)
-      const a    = Object.assign(document.createElement('a'), { href: url, download: 'badges.zip' })
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      pdfRef.current.save('NYAFF-badges.pdf')
       setGenerating(false)
       setFinished(true)
       setBatchGuest(null)
@@ -108,7 +98,7 @@ export default function App() {
     setGenerating(true)
     setFinished(false)
     setProgress({ done: 0, total: guests.length })
-    zipRef.current      = new JSZip()
+    pdfRef.current      = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4.09, 5.65] })
     batchIdxRef.current = 0
     const g = guests[0]
     setBatchGuest({ ...g, photoUrl: resolvePhoto(g.photo) })
@@ -159,7 +149,7 @@ export default function App() {
             <span className="step-num">3</span>
             <div className="step-text">
               <strong>Generate &amp; download</strong>
-              <span>All badges as ZIP</span>
+              <span>All badges as one PDF</span>
             </div>
           </div>
         </div>
@@ -277,7 +267,7 @@ export default function App() {
           >
             {generating
               ? `Generating ${progress.done} / ${progress.total}…`
-              : 'Generate All Badges'
+              : 'Generate PDF'
             }
           </button>
 
@@ -291,7 +281,7 @@ export default function App() {
           )}
 
           {finished && (
-            <div className="done-msg">✓ Done! <strong>badges.zip</strong> downloaded</div>
+            <div className="done-msg">✓ Done! <strong>NYAFF-badges.pdf</strong> downloaded</div>
           )}
         </section>
       )}
